@@ -34,7 +34,7 @@ gunicorn==20.1.0
     # via -r requirements.in
 honcho==1.1.0
     # via -r requirements.in
-httpie==3.2.1
+httpie==3.2.3
     # via -r requirements.in
 idna==3.10
     # via requests
@@ -84,7 +84,7 @@ pysocks==1.7.1
     # via requests
 python-dotenv==0.20.0
     # via -r requirements.in
-requests[socks]==2.32.3
+requests[socks]==2.31.0
     # via
     #   httpie
     #   requests-toolbelt
