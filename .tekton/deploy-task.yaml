@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy-task
+spec:
+  params:
+    - name: IMAGE
+      description: The full image name
+    - name: DEPLOYMENT_NAME
+      description: The name of the deployment to update
+      default: "flask-app"
+    - name: NAMESPACE
+      description: The namespace where the deployment exists
+      default: "$(context.pipelineRun.namespace)"
+  steps:
+    - name: deploy
+      image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      script: |
+        #!/bin/bash
+        set -e
+        echo "Deploying $(params.IMAGE) to $(params.NAMESPACE)/$(params.DEPLOYMENT_NAME)"
+
+        # Check if deployment exists, create if not
+        if ! oc get deployment $(params.DEPLOYMENT_NAME) -n $(params.NAMESPACE); then
+          echo "Creating new deployment..."
+          oc create deployment $(params.DEPLOYMENT_NAME) --image=$(params.IMAGE) -n $(params.NAMESPACE)
+          
+          # Expose the service
+          oc expose deployment $(params.DEPLOYMENT_NAME) --port=8000 -n $(params.NAMESPACE)
+          oc expose service $(params.DEPLOYMENT_NAME) -n $(params.NAMESPACE)
+        else
+          echo "Updating existing deployment..."
+          oc set image deployment/$(params.DEPLOYMENT_NAME) $(params.DEPLOYMENT_NAME)=$(params.IMAGE) -n $(params.NAMESPACE)
+          oc rollout restart deployment $(params.DEPLOYMENT_NAME) -n $(params.NAMESPACE)
+        fi
+
+        # Wait for rollout to complete
+        oc rollout status deployment/$(params.DEPLOYMENT_NAME) -n $(params.NAMESPACE)

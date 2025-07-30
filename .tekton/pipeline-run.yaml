@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: app-ci-pipeline-run
+spec:
+  pipelineRef:
+    name: app-ci-pipeline
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: app-source-pvc
+      # If you don't have a PVC, you can use an emptyDir (for testing only):
+      # emptyDir: {}
+
+---
+# PVC for the pipeline workspace - apply this separately if needed
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-source-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

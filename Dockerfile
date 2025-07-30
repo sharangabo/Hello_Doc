@@ -1,18 +1,22 @@
-# Use official Python image
-FROM python:3.10-slim
+FROM python:3.9-slim
 
-# Set work directory
+# Establish a working folder
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Establish dependencies
+COPY requirements.txt .
+RUN python -m pip install -U pip wheel && \
+    pip install -r requirements.txt
 
-# Copy app code
-COPY app.py ./
+# Copy source files last because they change the most
+COPY service ./service
 
-# Expose port
-EXPOSE 5000
+# Become non-root user
+RUN useradd -m -r service && \
+    chown -R service:service /app
+USER service
 
-# Run the app
-CMD ["python", "app.py"] 
+# Run the service on port 8000
+ENV PORT 8000
+EXPOSE $PORT
+CMD ["gunicorn", "service:app", "--bind", "0.0.0.0:8000"]

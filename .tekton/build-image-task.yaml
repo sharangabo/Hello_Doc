@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-image-task
+spec:
+  workspaces:
+    - name: source
+      description: The workspace containing the source code
+  params:
+    - name: IMAGE
+      description: The name of the image to build and push
+      default: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/flask-app:latest"
+  steps:
+    - name: build-and-push
+      image: quay.io/buildah/stable:latest
+      workingDir: $(workspaces.source.path)
+      securityContext:
+        privileged: true
+      script: |
+        #!/bin/bash
+        set -e
+        buildah bud --format=docker -f Dockerfile -t $(params.IMAGE) .
+        buildah push $(params.IMAGE)

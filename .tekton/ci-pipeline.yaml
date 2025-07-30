@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: app-ci-pipeline
+spec:
+  workspaces:
+    - name: shared-workspace
+      description: The workspace shared by all tasks
+  params:
+    - name: IMAGE
+      description: The name of the image to build and push
+      default: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/flask-app:latest"
+    - name: DEPLOYMENT_NAME
+      description: The name of the deployment to update
+      default: "flask-app"
+  tasks:
+    - name: run-lint
+      taskRef:
+        name: lint-task
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: run-tests
+      taskRef:
+        name: unit-test-task
+      runAfter:
+        - run-lint
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+
+    - name: build-image
+      taskRef:
+        name: build-image-task
+      runAfter:
+        - run-tests
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+
+    - name: deploy-app
+      taskRef:
+        name: deploy-task
+      runAfter:
+        - build-image
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+        - name: DEPLOYMENT_NAME
+          value: $(params.DEPLOYMENT_NAME)
